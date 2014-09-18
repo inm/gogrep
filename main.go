@@ -13,17 +13,43 @@ var options = struct {
 	help      *bool
 	n         *bool
 	recursive *bool
+	s         *bool
 	v         *bool
+
+	printPath bool
 }{
 	help:      flag.Bool("help", false, "display this help and exit"),
 	n:         flag.Bool("n", false, "print line number with output lines"),
 	recursive: flag.Bool("r", false, "handle directories recusively"),
+	s:         flag.Bool("s", false, "suppress error messages"),
 	v:         flag.Bool("v", false, "select non-matching lines"),
 }
 
 var (
 	exitCode int
 )
+
+func reportError(err error) {
+	if !*options.s {
+		switch err := err.(type) {
+		case *os.PathError:
+			fmt.Fprintf(os.Stderr, "gogrep: %s: %s\n", err.Path, err.Err)
+		default:
+			fmt.Fprintln(os.Stderr, "gogrep:", err)
+		}
+	}
+	exitCode = 2
+}
+
+func reportMatch(path string, num int, line string) {
+	if options.printPath && path != "" {
+		fmt.Print(path, ":")
+	}
+	if *options.n {
+		fmt.Print(num, ":")
+	}
+	fmt.Println(line)
+}
 
 func match(pattern *regexp.Regexp, path string, num int, line string) {
 	if !*options.v == pattern.MatchString(line) {
@@ -44,26 +70,6 @@ func searchFile(pattern *regexp.Regexp, path string) error {
 		match(pattern, path, num, scan.Text())
 	}
 	return scan.Err()
-}
-
-func reportError(err error) {
-	switch err := err.(type) {
-	case *os.PathError:
-		fmt.Fprintf(os.Stderr, "gogrep: %s: %s\n", err.Path, err.Err)
-	default:
-		fmt.Fprintln(os.Stderr, "gogrep:", err)
-	}
-	exitCode = 2
-}
-
-func reportMatch(path string, num int, line string) {
-	if path != "" {
-		fmt.Print(path, ":")
-	}
-	if *options.n {
-		fmt.Print(num, ":")
-	}
-	fmt.Println(line)
 }
 
 func main() {
@@ -103,17 +109,20 @@ func main() {
 		return
 	}
 
+	options.printPath = flag.NArg() > 2
 	for i := 1; i < flag.NArg(); i++ {
 		filenames, err := filepath.Glob(flag.Arg(i))
 		if err != nil {
 			reportError(err)
 		}
+		options.printPath = options.printPath || len(filenames) > 1
 		for _, name := range filenames {
 			info, err := os.Stat(name)
 			if err != nil {
 				reportError(err)
 			}
 			if info.IsDir() {
+				options.printPath = true
 				err = filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 					if err != nil {
 						return err

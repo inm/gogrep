@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -51,23 +52,24 @@ func reportMatch(path string, num int, line string) {
 	fmt.Println(line)
 }
 
-func match(pattern *regexp.Regexp, path string, num int, line string) {
-	if !*options.v == pattern.MatchString(line) {
-		reportMatch(path, num, line)
-	}
-}
-
 func searchFile(pattern *regexp.Regexp, path string) error {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	scan := bufio.NewScanner(f)
+	return search(pattern, path, f)
+}
+
+func search(pattern *regexp.Regexp, path string, r io.Reader) error {
+	scan := bufio.NewScanner(r)
 	num := 0
 	for scan.Scan() {
 		num++
-		match(pattern, path, num, scan.Text())
+		line := scan.Text()
+		if !*options.v == pattern.MatchString(line) {
+			reportMatch(path, num, line)
+		}
 	}
 	return scan.Err()
 }
@@ -97,13 +99,7 @@ func main() {
 	}
 
 	if flag.NArg() == 1 {
-		scan := bufio.NewScanner(os.Stdin)
-		num := 0
-		for scan.Scan() {
-			num++
-			match(pattern, "", num, scan.Text())
-		}
-		if err := scan.Err(); err != nil {
+		if err := search(pattern, "", os.Stdin); err != nil {
 			reportError(err)
 		}
 		return
@@ -120,6 +116,7 @@ func main() {
 			info, err := os.Stat(name)
 			if err != nil {
 				reportError(err)
+				continue
 			}
 			if info.IsDir() {
 				options.printPath = true

@@ -21,11 +21,6 @@ var options = struct {
 	v:         flag.Bool("v", false, "select non-matching lines"),
 }
 
-type Match struct {
-	Content string
-	Number  int
-}
-
 var (
 	exitCode int
 )

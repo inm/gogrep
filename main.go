@@ -11,6 +11,8 @@ import (
 )
 
 var options = struct {
+	H         *bool
+	h         *bool
 	help      *bool
 	n         *bool
 	recursive *bool
@@ -19,6 +21,8 @@ var options = struct {
 
 	printPath bool
 }{
+	H:         flag.Bool("H", false, "print the filename for each match"),
+	h:         flag.Bool("h", false, "suppress the prefixing filename on output"),
 	help:      flag.Bool("help", false, "display this help and exit"),
 	n:         flag.Bool("n", false, "print line number with output lines"),
 	recursive: flag.Bool("r", false, "handle directories recusively"),
@@ -43,7 +47,7 @@ func reportError(err error) {
 }
 
 func reportMatch(path string, num int, line string) {
-	if options.printPath && path != "" {
+	if !*options.h && (*options.H || options.printPath) {
 		fmt.Print(path, ":")
 	}
 	if *options.n {
@@ -99,7 +103,7 @@ func main() {
 	}
 
 	if flag.NArg() == 1 {
-		if err := search(pattern, "", os.Stdin); err != nil {
+		if err := search(pattern, "(standard input):", os.Stdin); err != nil {
 			reportError(err)
 		}
 		return

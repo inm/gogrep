@@ -11,18 +11,12 @@ import (
 )
 
 var options = struct {
-	H         *bool
-	h         *bool
 	help      *bool
 	n         *bool
 	recursive *bool
 	s         *bool
 	v         *bool
-
-	printPath bool
 }{
-	H:         flag.Bool("H", false, "print the filename for each match"),
-	h:         flag.Bool("h", false, "suppress the prefixing filename on output"),
 	help:      flag.Bool("help", false, "display this help and exit"),
 	n:         flag.Bool("n", false, "print line number with output lines"),
 	recursive: flag.Bool("r", false, "handle directories recusively"),
@@ -47,9 +41,7 @@ func reportError(err error) {
 }
 
 func reportMatch(path string, num int, line string) {
-	if !*options.h && (*options.H || options.printPath) {
-		fmt.Print(path, ":")
-	}
+	fmt.Print(path, ":")
 	if *options.n {
 		fmt.Print(num, ":")
 	}
@@ -103,19 +95,17 @@ func main() {
 	}
 
 	if flag.NArg() == 1 {
-		if err := search(pattern, "(standard input):", os.Stdin); err != nil {
+		if err := search(pattern, "", os.Stdin); err != nil {
 			reportError(err)
 		}
 		return
 	}
 
-	options.printPath = flag.NArg() > 2
 	for i := 1; i < flag.NArg(); i++ {
 		filenames, err := filepath.Glob(flag.Arg(i))
 		if err != nil {
 			reportError(err)
 		}
-		options.printPath = options.printPath || len(filenames) > 1
 		for _, name := range filenames {
 			info, err := os.Stat(name)
 			if err != nil {
@@ -123,7 +113,6 @@ func main() {
 				continue
 			}
 			if info.IsDir() {
-				options.printPath = true
 				err = filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 					if err != nil {
 						return err

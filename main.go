@@ -11,17 +11,17 @@ import (
 )
 
 var options = struct {
-	help      *bool
-	n         *bool
-	recursive *bool
-	s         *bool
-	v         *bool
+	help *bool
+	n    *bool
+	r    *bool
+	s    *bool
+	v    *bool
 }{
-	help:      flag.Bool("help", false, "display this help and exit"),
-	n:         flag.Bool("n", false, "print line number with output lines"),
-	recursive: flag.Bool("r", false, "handle directories recusively"),
-	s:         flag.Bool("s", false, "suppress error messages"),
-	v:         flag.Bool("v", false, "select non-matching lines"),
+	help: flag.Bool("help", false, "display this help and exit"),
+	n:    flag.Bool("n", false, "print line number with output lines"),
+	r:    flag.Bool("r", false, "handle directories recusively"),
+	s:    flag.Bool("s", false, "suppress error messages"),
+	v:    flag.Bool("v", false, "select non-matching lines"),
 }
 
 var (
@@ -118,7 +118,7 @@ func main() {
 						return err
 					}
 					if info.IsDir() {
-						if !*options.recursive {
+						if !*options.r {
 							return filepath.SkipDir
 						}
 						return nil

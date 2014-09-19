@@ -5,12 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 )
 
 var options = struct {
+	file *string
 	help *bool
 	n    *bool
 	q    *bool
@@ -18,6 +20,7 @@ var options = struct {
 	s    *bool
 	v    *bool
 }{
+	file: flag.String("file", "", "optain PATTERN form file"),
 	help: flag.Bool("help", false, "display this help and exit"),
 	n:    flag.Bool("n", false, "print line number with output lines"),
 	q:    flag.Bool("q", false, "suppress all normal output"),
@@ -91,7 +94,17 @@ func main() {
 		os.Exit(2)
 	}
 
-	pattern, err := regexp.Compile(flag.Arg(0))
+	pattern, err := regexp.Compile(func() string {
+		if *options.file == "" {
+			return flag.Arg(0)
+		}
+		bytes, err := ioutil.ReadFile(*options.file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+		return string(bytes)
+	}())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

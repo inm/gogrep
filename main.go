@@ -13,19 +13,22 @@ import (
 var options = struct {
 	help *bool
 	n    *bool
+	q    *bool
 	r    *bool
 	s    *bool
 	v    *bool
 }{
 	help: flag.Bool("help", false, "display this help and exit"),
 	n:    flag.Bool("n", false, "print line number with output lines"),
+	q:    flag.Bool("q", false, "suppress all normal output"),
 	r:    flag.Bool("r", false, "handle directories recusively"),
 	s:    flag.Bool("s", false, "suppress error messages"),
 	v:    flag.Bool("v", false, "select non-matching lines"),
 }
 
 var (
-	exitCode int
+	exitCode   int
+	matchCount int
 )
 
 func reportError(err error) {
@@ -38,14 +41,6 @@ func reportError(err error) {
 		}
 	}
 	exitCode = 2
-}
-
-func reportMatch(path string, num int, line string) {
-	fmt.Print(path, ":")
-	if *options.n {
-		fmt.Print(num, ":")
-	}
-	fmt.Println(line)
 }
 
 func searchFile(pattern *regexp.Regexp, path string) error {
@@ -64,7 +59,15 @@ func search(pattern *regexp.Regexp, path string, r io.Reader) error {
 		num++
 		line := scan.Text()
 		if !*options.v == pattern.MatchString(line) {
-			reportMatch(path, num, line)
+			matchCount++
+			if *options.q {
+				continue
+			}
+			fmt.Print(path, ":")
+			if *options.n {
+				fmt.Print(num, ":")
+			}
+			fmt.Println(line)
 		}
 	}
 	return scan.Err()
@@ -133,6 +136,11 @@ func main() {
 			if err := searchFile(pattern, name); err != nil {
 				reportError(err)
 			}
+		}
+	}
+	if *options.q {
+		if exitCode == 0 && matchCount == 0 {
+			os.Exit(1)
 		}
 	}
 	os.Exit(exitCode)

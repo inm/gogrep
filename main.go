@@ -110,6 +110,15 @@ func main() {
 		os.Exit(2)
 	}
 
+	defer func() {
+		if *options.q {
+			if exitCode == 0 && matchCount == 0 {
+				os.Exit(1)
+			}
+		}
+		os.Exit(exitCode)
+	}()
+
 	if flag.NArg() == 1 {
 		if err := search(pattern, "", os.Stdin); err != nil {
 			reportError(err)
@@ -151,10 +160,4 @@ func main() {
 			}
 		}
 	}
-	if *options.q {
-		if exitCode == 0 && matchCount == 0 {
-			os.Exit(1)
-		}
-	}
-	os.Exit(exitCode)
 }
